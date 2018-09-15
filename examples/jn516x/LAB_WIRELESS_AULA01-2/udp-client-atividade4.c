@@ -43,7 +43,7 @@
 #define SEND_INTERVAL		5 * CLOCK_SECOND
 #define MAX_PAYLOAD_LEN		40
 #define CONN_PORT     8802
-#define MDNS 0
+#define MDNS 1
 
 #define LED_TOGGLE_REQUEST  0x79
 #define LED_SET_STATE       0x7A
@@ -223,7 +223,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
       status = set_connection_address(&ipaddr);
 
       if(status == RESOLV_STATUS_RESOLVING) {
-          PROCESS_WAIT_EVENT_UNTIL(ev == resolv_event_found);
+          //PROCESS_WAIT_EVENT_UNTIL(ev == resolv_event_found);
+          PROCESS_WAIT_EVENT();
       } else if(status != RESOLV_STATUS_CACHED) {
           PRINTF("Can't get connection address.\n");
           PROCESS_YIELD();
