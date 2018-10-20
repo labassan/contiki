@@ -43,7 +43,7 @@
 #define SEND_INTERVAL		5 * CLOCK_SECOND
 #define MAX_PAYLOAD_LEN		40
 #define CONN_PORT     8802
-#define MDNS 0
+//#define MDNS 1
 
 #define LED_TOGGLE_REQUEST  0x79
 #define LED_SET_STATE       0x7A
@@ -153,7 +153,7 @@ set_connection_address(uip_ipaddr_t *ipaddr)
 {
 #ifndef UDP_CONNECTION_ADDR
 #if RESOLV_CONF_SUPPORTS_MDNS
-#define UDP_CONNECTION_ADDR       raspbassan.local
+#define UDP_CONNECTION_ADDR       contiki-udp-server.local
 #elif UIP_CONF_ROUTER
 #define UDP_CONNECTION_ADDR       fd00:0:0:0:0212:7404:0004:0404
 #else
@@ -233,12 +233,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 #else
   //c_onfigures the destination IPv6 address
   //uip_ip6addr(&ipaddr, 0xfe80, 0, 0, 0, 0x212, 0x4b00, 0x07b9, 0x5e8d);
-  //uip_ip6addr(&ipaddr, 0x2804, 0x014c, 0x8786, 0x8166, 0x823b, 0x93e1, 0xe7af, 0xd9a6); // 2018
-  uip_ip6addr(&ipaddr, 0x2804, 0x014c, 0x8786, 0x8166, 0xac22, 0xe8c, 0x8d5c, 0x14ad); // 2018
-
-  //inet6 addr: 2804:14c:8786:8166:ac22:e8c:8d5c:14ad/64 Scope:Global
-  //inet6 addr: 2804:14c:8786:8166:823b:93e1:e7af:d9a6/64 Scope:Global
-
+  uip_ip6addr(&ipaddr, 0x2804, 0x014c, 0x8786, 0x8166, 0x6470, 0xa0b0, 0xe85e, 0xa60b); // 2018
 #endif
   /* new connection with remote host */
   client_conn = udp_new(&ipaddr, UIP_HTONS(CONN_PORT), NULL);

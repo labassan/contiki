@@ -31,6 +31,7 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 #include "net/ip/resolv.h"
+#include "lib/sensors.h"
 #include "dev/leds.h"
 //#include "udp-client.c"
 
@@ -43,12 +44,37 @@
 #define SEND_INTERVAL		5 * CLOCK_SECOND
 #define MAX_PAYLOAD_LEN		40
 #define CONN_PORT     8802
-#define MDNS 1
+#define MDNS 0
 
 #define LED_TOGGLE_REQUEST  0x79
 #define LED_SET_STATE       0x7A
 #define LED_GET_STATE       0x7B
 #define LED_STATE           0x7C
+
+#define OP_REQUEST          0x6E
+#define OP_RESULT           0x6F
+
+#define OP_MULTIPLY         0x22
+#define OP_DIVIDE           0x23
+#define OP_SUM              0x24
+#define OP_SUBTRACT         0x25
+
+
+struct mathopreply {
+  uint8_t opResult;
+  int32_t intPart;
+  uint32_t fracPart;
+  float fpResult;
+  uint8_t crc;
+}  __attribute__((packed));
+
+struct mathopreqstr {
+  uint8_t opRequest;
+  int32_t op1;
+  uint8_t operation;
+  int32_t op2;
+  float fc;
+}  __attribute__((packed));
 
 static char buf[MAX_PAYLOAD_LEN];
 
@@ -66,6 +92,8 @@ tcpip_handler(void)
 {
     char *dados;
     char payload[2]={ LED_STATE, 0x00};
+    struct mathopreply* resposta;
+    static int i;
 
     payload[1] = leds_get();
 
@@ -75,6 +103,10 @@ tcpip_handler(void)
         printf("Recebidos %d bytes\n",uip_datalen());
         switch (dados[0])
         {
+            case OP_RESULT:
+                resposta = (struct mathopreply*)dados;
+                printf("Resultado = %d",resposta->intPart);
+                break;
             case LED_GET_STATE:
                 uip_udp_packet_send(client_conn, payload, 2);
                 break;
@@ -110,10 +142,10 @@ timeout_handler(void)
       PRINTF("Aguardando auto-configuracao de IP\n");
       return;
     }
-    uip_udp_packet_send(client_conn, buf, 1);
+    /*uip_udp_packet_send(client_conn, buf, 1);
     PRINTF("Cliente para [");
     PRINT6ADDR(&client_conn->ripaddr);
-    PRINTF("]: %u\n",UIP_HTONS(client_conn->rport));
+    PRINTF("]: %u\n",UIP_HTONS(client_conn->rport));*/
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -244,13 +276,54 @@ PROCESS_THREAD(udp_client_process, ev, data)
 	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   etimer_set(&et, SEND_INTERVAL);
-  while(1) {
+  while(1)
+  {
+      static unsigned char buf[14];
+      static struct mathopreqstr operacao;
+      static value1 = 1;
+      static value2 = 2;
+      static int i=0;
+      static char* ptr;
+
     PROCESS_YIELD();
-    if(etimer_expired(&et)) {
+    if(etimer_expired(&et))
+    {
       timeout_handler();
       etimer_restart(&et);
-    } else if(ev == tcpip_event) {
+    } else if(ev == tcpip_event)
+    {
       tcpip_handler();
+    }
+    else if (ev == sensors_event)
+    {
+        printf("apertou o botao\n");
+        value1++;
+        value2++;
+
+        operacao.opRequest = OP_REQUEST;
+        operacao.operation = OP_SUM;
+        operacao.op1 = value1;
+        operacao.op2 = value2;
+        operacao.fc = 1;
+
+        ptr = (char*)&operacao;
+
+        /*for (i=0; i < 14; i++)
+        {
+            buf[i]=ptr[i];
+        }*/
+        //memcpy()
+
+        if(uip_ds6_get_global(ADDR_PREFERRED) != NULL)
+        {
+            uip_udp_packet_send(client_conn,&operacao,sizeof(struct mathopreqstr));
+        }
+
+        printf("pacote enviado, soma de %d e %d\n",value1,value2);
+
+
+
+
     }
   }
 
