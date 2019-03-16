@@ -40,10 +40,10 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
-#define SEND_INTERVAL		5 * CLOCK_SECOND
-#define MAX_PAYLOAD_LEN		40
-#define CONN_PORT     8802
-#define MDNS 0
+#define SEND_INTERVAL		(15 * CLOCK_SECOND)
+#define MAX_PAYLOAD_LEN		(40)
+#define CONN_PORT     (8802)
+#define MDNS (0)
 
 #define LED_TOGGLE_REQUEST  0x79
 #define LED_SET_STATE       0x7A
@@ -199,10 +199,9 @@ PROCESS_THREAD(udp_client_process, ev, data)
   PROCESS_BEGIN();
   PRINTF("UDP client process started\n");
 
-#if UIP_CONF_ROUTER
-  //set_global_address();
-#endif
-
+#if 0 //UIP_CONF_ROUTER
+  set_global_address();
+#else
   etimer_set(&et, 2*CLOCK_SECOND);
   while(uip_ds6_get_global(ADDR_PREFERRED) == NULL)
   {
@@ -213,20 +212,27 @@ PROCESS_THREAD(udp_client_process, ev, data)
           etimer_set(&et, 2*CLOCK_SECOND);
       }
   }
-
+#endif
 
   print_local_addresses();
 
 #if MDNS
+  char contiki_hostname[16];
+  sprintf(contiki_hostname,"node%02X%02X",linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
+  resolv_set_hostname(contiki_hostname);
+  PRINTF("Setting hostname to %s\n",contiki_hostname);
+
   static resolv_status_t status = RESOLV_STATUS_UNCACHED;
   while(status != RESOLV_STATUS_CACHED) {
       status = set_connection_address(&ipaddr);
 
       if(status == RESOLV_STATUS_RESOLVING) {
-          PROCESS_WAIT_EVENT_UNTIL(ev == resolv_event_found);
+          //PROCESS_WAIT_EVENT_UNTIL(ev == resolv_event_found);
+          PROCESS_WAIT_EVENT();
       } else if(status != RESOLV_STATUS_CACHED) {
           PRINTF("Can't get connection address.\n");
-          PROCESS_YIELD();
+          //PROCESS_YIELD();
+          PROCESS_WAIT_EVENT();
       }
   }
 #else
