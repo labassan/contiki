@@ -42,6 +42,7 @@
 #include "contiki.h"
 #include "rest-engine.h"
 #include "dev/leds.h"
+#include "er-coap.h"
 
 static void res_post_put_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
@@ -52,34 +53,43 @@ RESOURCE(res_utfprwsn,
          res_post_put_handler,
          res_post_put_handler,
          NULL);
+static int tamanho_do_buffer;
+static char buffer_declarado[REST_MAX_CHUNK_SIZE];
 
 static void
 res_post_put_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  printf("Chegou POST PUT");
+    coap_packet_t *const coap_req = (coap_packet_t *)request;
+    uint8_t buffer_ptr = 0;
+
+    if (coap_req->payload_len > REST_MAX_CHUNK_SIZE)
+    {
+        REST.set_response_status(response, REST.status.BAD_REQUEST);
+        return;
+    }
+    else
+    {
+        memcpy((void*)buffer_declarado, (void*)coap_req->payload, coap_req->payload_len);
+        tamanho_do_buffer = coap_req->payload_len;
+    }
 }
 
 static void
 res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  const char *len = NULL;
-  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
-  char const *const message = "Chegou um get ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
-  int length = 12; /*           |<-------->| */
+    uint32_t i;
+    uint8_t etag=0;
 
-  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
-  if(REST.get_query_variable(request, "len", &len)) {
-    length = atoi(len);
-    if(length < 0) {
-      length = 0;
+    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
+
+    for (i=0; i<tamanho_do_buffer; i++)
+    {
+        etag += buffer_declarado[i];
+
     }
-    if(length > REST_MAX_CHUNK_SIZE) {
-      length = REST_MAX_CHUNK_SIZE;
-    }
-    memcpy(buffer, message, length);
-  } else {
-    memcpy(buffer, message, length);
-  } REST.set_header_content_type(response, REST.type.TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
-  REST.set_header_etag(response, (uint8_t *)&length, 1);
-  REST.set_response_payload(response, buffer, length);
+
+    REST.set_header_etag(response,(uint8_t *)&etag, 1);
+
+    REST.set_response_payload(response, buffer_declarado, tamanho_do_buffer);
+
 }
