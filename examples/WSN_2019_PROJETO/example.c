@@ -105,8 +105,8 @@ static struct etimer t1;
 
 static struct mqtt_sn_connection mqtt_sn_c;
 static char mqtt_client_id[17];
-static char ctrl_topic[22] = "0000000000000000/ctrl\0";//of form "0011223344556677/ctrl" it is null terminated, and is 21 charactes
-static char pub_topic[21] = "0000000000000000/msg\0";
+static char ctrl_topic[] = "bassan_player/ctrl\0";//of form "0011223344556677/ctrl" it is null terminated, and is 21 charactes
+static char pub_topic[] = "bassan_player/msg\0";
 static uint16_t ctrl_topic_id;
 static uint16_t publisher_topic_id;
 static publish_packet_t incoming_packet;
@@ -251,7 +251,7 @@ PROCESS_THREAD(publish_process, ev, data)
 
   PROCESS_BEGIN();
   send_interval = DEFAULT_SEND_INTERVAL;
-  memcpy(pub_topic,device_id,16);
+  //memcpy(pub_topic,device_id,16);
   printf("registering topic\n");
   registration_tries =0;
   while (registration_tries < REQUEST_RETRIES)
@@ -327,7 +327,7 @@ PROCESS_THREAD(ctrl_subscription_process, ev, data)
   static struct etimer periodic_timer;
   PROCESS_BEGIN();
   subscription_tries = 0;
-  memcpy(ctrl_topic,device_id,16);
+  //memcpy(ctrl_topic,device_id,16);
   printf("requesting subscription\n");
   while(subscription_tries < REQUEST_RETRIES)
   {
