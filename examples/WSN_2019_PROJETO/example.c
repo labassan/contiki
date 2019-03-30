@@ -279,7 +279,7 @@ PROCESS_THREAD(publish_process, ev, data)
         if (ev == PLAY_BUTTON_PRESSED)
         {
             //sprintf(buf, "Message %" PRIu32, message_number); //removendo o warning do GCC para o uint32_t
-            sprintf(buf, "Play/Pause button has been pressed!"); //removendo o warning do GCC para o uint32_t
+            sprintf(buf, "Play/Pause button event"); //removendo o warning do GCC para o uint32_t
             buf_len = strlen(buf);
             mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
             if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
@@ -289,13 +289,14 @@ PROCESS_THREAD(publish_process, ev, data)
         }
         if (ev == STOP_BUTTON_PRESSED)
         {
-            /*sprintf(buf, "STOP button has been pressed!\n"); //removendo o warning do GCC para o uint32_t
+            //sprintf(buf, "Message %" PRIu32, message_number); //removendo o warning do GCC para o uint32_t
+            sprintf(buf, "Stop button event"); //removendo o warning do GCC para o uint32_t
             buf_len = strlen(buf);
             mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
             if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
             {
                 process_post(&example_mqttsn_process, (process_event_t)(NULL), (process_event_t)(41));
-            }*/
+            }
 
         }
 
