@@ -25,6 +25,10 @@
   Copyright (C) 2013 Adam Renner
 */
 
+/* commands
+ * ./mqtt-sn-pub -h pksr.eletrica.eng.br -t "00124B000F829B04/ctrl" -m "1" - STOP
+ * ./mqtt-sn-pub -h pksr.eletrica.eng.br -t "00124B000F829B04/ctrl" -m "0" - Play/pause
+ */
 
 #include "contiki.h"
 #include "contiki-lib.h"
@@ -129,7 +133,7 @@ PROCESS(hello_world_process2, "Hello world process");
 PROCESS(music_process,"Music Player");
 LPM_MODULE(pwmdrive_module, pwm_request_max_pm, sleep_enter, sleep_leave, LPM_DOMAIN_PERIPH);
 /*---------------------------------------------------------------------------*/
-AUTOSTART_PROCESSES(&example_mqttsn_process);
+AUTOSTART_PROCESSES(&example_mqttsn_process,&hello_world_process2,&music_process);
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -192,10 +196,14 @@ publish_receiver(struct mqtt_sn_connection *mqc, const uip_ipaddr_t *source_addr
   id_msg = atoi(incoming_packet.data);
   if (id_msg == 0)
   {
-      leds_off(LEDS_ALL);
+      printf("MUSIC_PLAY_START_PAUSE received\n");
+      process_post(&hello_world_process2, MUSIC_PLAY_START_PAUSE,1);
   }
   else
-      leds_on(LEDS_ALL);
+  {
+      printf("MUSIC_PLAY_STOP received\n");
+      process_post(&hello_world_process2, MUSIC_PLAY_STOP,1);
+  }
   printf("O id messagem recebido seria %d",id_msg);
   //see if this message corresponds to ctrl channel subscription request
   if (uip_htons(incoming_packet.topic_id) == ctrl_topic_id) {
@@ -548,7 +556,6 @@ PROCESS_THREAD(hello_world_process2, ev, data)
     while (1)
     {
         PROCESS_WAIT_EVENT();
-
         if (ev == TONE_PLAYED_ACK && state_player == STATE_PLAYING)
         {
             current_play_position++;
