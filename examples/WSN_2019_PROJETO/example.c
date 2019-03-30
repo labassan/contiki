@@ -28,6 +28,7 @@
 /* commands
  * ./mqtt-sn-pub -h pksr.eletrica.eng.br -t "00124B000F829B04/ctrl" -m "1" - STOP
  * ./mqtt-sn-pub -h pksr.eletrica.eng.br -t "00124B000F829B04/ctrl" -m "0" - Play/pause
+ * ./mqtt-sn-sub -h pksr.eletrica.eng.br -t "00124B000F829B04/msg" - STOP
  */
 
 #include "contiki.h"
@@ -77,6 +78,8 @@
 #define TONE_PLAYED_ACK      45
 #define TONE_STOP_EVENT      46
 #define TONE_STOPPED_ACK     47
+#define PLAY_BUTTON_PRESSED  48
+#define STOP_BUTTON_PRESSED  49
 
 // funcs prototypes
 int16_t pwminit(int32_t freq);
@@ -270,21 +273,43 @@ PROCESS_THREAD(publish_process, ev, data)
     }
   }
   if (mqtt_sn_request_success(rreq)){
-    //start topic publishing to topic at regular intervals
-    etimer_set(&send_timer, send_interval);
     while(1)
     {
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
+        PROCESS_WAIT_EVENT();
+        if (ev == PLAY_BUTTON_PRESSED)
+        {
+            //sprintf(buf, "Message %" PRIu32, message_number); //removendo o warning do GCC para o uint32_t
+            sprintf(buf, "Play/Pause button has been pressed!"); //removendo o warning do GCC para o uint32_t
+            buf_len = strlen(buf);
+            mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
+            if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
+            {
+                process_post(&example_mqttsn_process, (process_event_t)(NULL), (process_event_t)(41));
+            }
+        }
+        if (ev == STOP_BUTTON_PRESSED)
+        {
+            /*sprintf(buf, "STOP button has been pressed!\n"); //removendo o warning do GCC para o uint32_t
+            buf_len = strlen(buf);
+            mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
+            if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
+            {
+                process_post(&example_mqttsn_process, (process_event_t)(NULL), (process_event_t)(41));
+            }*/
+
+        }
+
+      /*PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
       sprintf(buf, "Message %" PRIu32, message_number); //removendo o warning do GCC para o uint32_t
       printf("publishing at topic: %s -> msg: %s\n", pub_topic, buf);
       message_number++;
       buf_len = strlen(buf);
       mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
-      /*if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
+      if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
       {
           process_post(&example_mqttsn_process, (process_event_t)(NULL), (process_event_t)(41));
-      }*/
-      etimer_set(&send_timer, send_interval);
+      }
+      etimer_set(&send_timer, send_interval);*/
     }
   } else {
     printf("unable to register topic\n");
@@ -590,27 +615,13 @@ PROCESS_THREAD(hello_world_process2, ev, data)
             if (data == &button_left_sensor)
             {
                 play_command_procedure();
-                /*if (state_player == STATE_STOPPED || state_player == STATE_PAUSED)
-                {
-                    state_player = STATE_PLAYING;
-                    printf("#MAIN TASK# - PLAY PRESSED\n");
-                    process_post(&music_process,TONE_PLAY_EVENT,current_play_position);
-                }
-                else if (state_player == STATE_PLAYING)
-                {
-                    state_player = STATE_PAUSED;
-                    printf("#MAIN TASK# - PAUSE PRESSED\n");
-                    process_post(&music_process, TONE_STOP_EVENT,NULL);
-                }*/
+                process_post(&publish_process,PLAY_BUTTON_PRESSED,NULL);
             }
             // stop
             else if (data == &button_right_sensor)
             {
                 stop_command_procedure();
-                /*state_player = STATE_STOPPED;
-                printf("#MAIN TASK# - STOP PRESSED\n");
-                current_play_position = 0;
-                process_post(&music_process, TONE_STOP_EVENT,NULL);*/
+                process_post(&publish_process,STOP_BUTTON_PRESSED,NULL);
             }
         }
     }
