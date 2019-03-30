@@ -54,14 +54,25 @@ RESOURCE(res_utfprwsn,
          res_post_put_handler,
          NULL);
 static int tamanho_do_buffer;
-static char buffer_declarado[REST_MAX_CHUNK_SIZE];
+static char buffer_declarado[3][REST_MAX_CHUNK_SIZE];
 
 static void
 res_post_put_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
     coap_packet_t *const coap_req = (coap_packet_t *)request;
     uint8_t buffer_ptr = 0;
+    const char *query_buffernumber = NULL;
+    uint8_t buffernumber = 0;
 
+    if (REST.get_query_variable(request,"buffernumber",&query_buffernumber))
+    {
+        buffernumber = atoi(query_buffernumber);
+        if (buffernumber > 2)
+        {
+            buffernumber=0;
+        }
+        printf("buffernumber = %d\n",buffernumber);
+    }
     if (coap_req->payload_len > REST_MAX_CHUNK_SIZE)
     {
         REST.set_response_status(response, REST.status.BAD_REQUEST);
@@ -69,7 +80,7 @@ res_post_put_handler(void *request, void *response, uint8_t *buffer, uint16_t pr
     }
     else
     {
-        memcpy((void*)buffer_declarado, (void*)coap_req->payload, coap_req->payload_len);
+        memcpy((void*)buffer_declarado[buffernumber], (void*)coap_req->payload, coap_req->payload_len);
         tamanho_do_buffer = coap_req->payload_len;
     }
 }
@@ -79,17 +90,28 @@ res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferr
 {
     uint32_t i;
     uint8_t etag=0;
+    const char *query_buffernumber = NULL;
+    uint8_t buffernumber = 0;
 
+    if (REST.get_query_variable(request,"buffernumber",&query_buffernumber))
+    {
+       buffernumber = atoi(query_buffernumber);
+       printf("buffernumber_get = %d\n",buffernumber);
+       if (buffernumber > 2)
+       {
+           buffernumber=0;
+       }
+    }
     REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
 
     for (i=0; i<tamanho_do_buffer; i++)
     {
-        etag += buffer_declarado[i];
+        etag += buffer_declarado[buffernumber][i];
 
     }
 
     REST.set_header_etag(response,(uint8_t *)&etag, 1);
 
-    REST.set_response_payload(response, buffer_declarado, tamanho_do_buffer);
+    REST.set_response_payload(response, buffer_declarado[buffernumber], tamanho_do_buffer);
 
 }
